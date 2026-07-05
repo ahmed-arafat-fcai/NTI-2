@@ -11,6 +11,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+st.title("اختبار بسيط")
+st.write("إذا ظهرت هذه الرسالة، الكود يعمل بنجاح!")
+
 # 1. تعريف الكلاس (المنطق)
 class BreadfastAnalytics:
     def __init__(self, df):
