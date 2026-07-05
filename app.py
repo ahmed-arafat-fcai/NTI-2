@@ -11,7 +11,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📊Breadfast Operations Dashboard")
+st.title("🚀 Breadfast Operations Dashboard")
 uploaded_file = st.file_uploader("ارفع ملف الطلبات (CSV)", type="csv")
 
 if uploaded_file is not None:
