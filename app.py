@@ -1,70 +1,74 @@
 import streamlit as st
 import pandas as pd
 
+# 1. إعداد الصفحة
 st.set_page_config(page_title="Breadfast Operations", layout="wide")
 
-# --- CSS الاحترافي ---
+# 2. CSS الاحترافي (الإطار المضيء، الكروت المربعة، والخلفية)
 st.markdown("""
     <style>
-    /* خلفية الموقع */
-    .stApp { background: #020617; }
-
-    /* عنوان الموقع المضيء */
-    .glow-title { 
-        text-align: center; color: #fff; font-size: 3rem; 
-        text-shadow: 0 0 10px #10B981, 0 0 20px #10B981; 
-        border: 2px solid #10B981; border-radius: 10px; padding: 10px;
+    .stApp { background: #020617 !important; color: white; }
+    .kpi-box { 
+        background: #1e293b !important; 
+        border: 1px solid #10b981 !important; 
+        border-radius: 15px !important; 
+        padding: 20px !important; 
+        text-align: center !important; 
+        box-shadow: 0px 0px 15px rgba(16, 185, 129, 0.3) !important;
+        margin-bottom: 20px;
     }
-
-    /* كروت الملخص التنفيذي */
-    .kpi-card { 
-        background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; 
-        border-radius: 15px; padding: 20px; text-align: center;
-        transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    }
-    .kpi-card:hover { transform: translateY(-5px); border-color: #10B981; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
-    
-    /* تصميم الـ Metrics */
-    div[data-testid="stMetricValue"] { color: #10B981 !important; font-size: 24px; }
+    .kpi-text { color: #10b981 !important; font-size: 24px !important; font-weight: bold; }
+    h2, h3 { color: #10b981 !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# العنوان المضيء
-st.markdown('<h1 class="glow-title">🚀 Breadfast Operations Intelligence</h1>', unsafe_allow_html=True)
-
-uploaded_file = st.file_uploader("📥 ارفع ملف البيانات", type="csv")
+st.markdown('<h1 style="text-align:center; color:#10b981;">🚀 Breadfast Operations Intelligence</h1>', unsafe_allow_html=True)
+uploaded_file = st.file_uploader("📥 ارفع ملف الطلبات (CSV)", type="csv")
 
 if uploaded_file is not None:
-    # (المنطق كما هو بدون تغيير)
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
-    df['Total_Order_Value'] = pd.to_numeric(df['Price (EGP)']) * pd.to_numeric(df['Quantity'])
-    
-    # حسابات KPIs (كما هي)
+    df['Price (EGP)'] = pd.to_numeric(df['Price (EGP)'], errors='coerce').fillna(0)
+    df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce').fillna(0)
+    df['Total_Order_Value'] = df['Price (EGP)'] * df['Quantity']
+    df['Order_Time'] = pd.to_datetime(df['Order_Time'], format='%H:%M', errors='coerce').dt.time
+
+    # الحسابات كاملة
     stats = {
-        "إجمالي الطلبات": df['Order_ID'].nunique(),
+        "الطلبات": df['Order_ID'].nunique(),
         "الإيرادات": df['Total_Order_Value'].sum(),
         "متوسط الطلب": df['Total_Order_Value'].mean(),
-        "ملغاة": (df['Total_Order_Value'] == 0).sum()
+        "ملغاة": (df['Total_Order_Value'] == 0).sum(),
+        "ذروة (8-10ص)": ((df['Order_Time'] >= pd.to_datetime('08:00').time()) & (df['Order_Time'] <= pd.to_datetime('10:00').time())).sum()
     }
 
-    # عرض كروت الملخص التنفيذي بـ CSS
-    st.subheader("📌 الملخص التنفيذي")
-    cols = st.columns(4)
+    # عرض الـ 5 KPIs الأساسية بكروت مربعة
+    cols = st.columns(5)
     for i, (k, v) in enumerate(stats.items()):
-        with cols[i]:
-            st.markdown(f'<div class="kpi-card"><h4>{k}</h4><p style="font-size:24px; color:#10B981;">{v:,.0f}</p></div>', unsafe_allow_html=True)
+        cols[i].markdown(f'<div class="kpi-box"><div>{k}</div><div class="kpi-text">{v:,.0f}</div></div>', unsafe_allow_html=True)
 
-    # الرسوم البيانية (KPIs من تحت)
     st.markdown("---")
-    st.subheader("📊 تفاصيل التحليل")
-    col1, col2 = st.columns(2)
     
-    with col1:
-        st.write("📈 الإيرادات حسب التصنيف")
+    # 3. التحليلات الكاملة (الـ 10 أسئلة والـ Insights)
+    c1, c2 = st.columns(2)
+    
+    with c1:
+        st.subheader("📈 تحليل الأداء")
+        st.write("الإيرادات حسب التصنيف")
         st.bar_chart(df.groupby('Category')['Total_Order_Value'].sum())
-    with col2:
-        st.write("📦 تحليل الكميات")
-        st.bar_chart(df.groupby('Product')['Quantity'].sum())
+        st.write(f"🏆 المنتج الأعلى ربحاً: **{df.groupby('Product')['Total_Order_Value'].sum().idxmax()}**")
+        st.write(f"📁 التصنيف الأكثر مبيعاً: **{df.groupby('Category')['Quantity'].sum().idxmax()}**")
+
+    with c2:
+        st.subheader("👥 تحليل العملاء والمخزون")
+        st.write("المنتجات التي تحتاج إعادة تخزين (أقل من 5 قطع)")
+        st.bar_chart(df.groupby('Product')['Quantity'].sum()[df.groupby('Product')['Quantity'].sum() < 5])
+        st.write(f"⭐ العميل الأعلى قيمة: **{df.loc[df['Total_Order_Value'].idxmax()]['Customer']}**")
+        st.write(f"📉 العميل الأقل قيمة: **{df.loc[df['Total_Order_Value'].idxmin()]['Customer']}**")
+
+    # 4. زر عرض الداتا الخام
+    if st.checkbox("🔍 عرض الداتا الخام"):
+        st.dataframe(df, use_container_width=True)
+
 else:
-    st.info("يرجى رفع ملف الـ CSV للبدء.")
+    st.info("👋 يرجى رفع ملف البيانات للبدء.")
